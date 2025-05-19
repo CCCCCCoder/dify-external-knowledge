@@ -134,3 +134,21 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# java
+target
+.idea/
+.gradle/
+.mvn/
+.settings/
+.repository/
+.classpath/
+.project/
+.factorypath/
+.checkstyle
+.checkstyle-idea
+.checkstyle-idea.xml
+.checkstyle-idea.xml.iml
+.checkstyle-idea.xml.xml
+.checkstyle-idea.xml.xml.iml
+.checkstyle-idea.xml.xml.xml
