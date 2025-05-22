@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: com.manleytech
+testFramework: junit
+sourceLanguage: java
+buildTool: maven
+features: [app-name, cache-caffeine, data, data-jdbc, h2, http-client, java, java-application, jdbc-hikari, junit, logback, maven, maven-enforcer-plugin, micronaut-aot, micronaut-http-validation, netty-server, properties, readme, serialization-jackson, shade, spring, spring-web, static-resources]
