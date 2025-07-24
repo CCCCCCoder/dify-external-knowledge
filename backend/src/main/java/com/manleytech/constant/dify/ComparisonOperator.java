@@ -1,4 +1,4 @@
-package com.manleytech.constant;
+package com.manleytech.constant.dify;
 
 /**
  * 比较操作符常量类

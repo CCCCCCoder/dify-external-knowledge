@@ -1,4 +1,4 @@
-package com.manleytech.entity;
+package com.manleytech.entity.dify.query;
 
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotBlank;

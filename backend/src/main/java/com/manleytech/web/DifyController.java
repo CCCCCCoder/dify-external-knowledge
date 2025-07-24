@@ -1,8 +1,8 @@
 package com.manleytech.web;
 
 
-import com.manleytech.entity.DifyQueryEntity;
-import com.manleytech.entity.DifyQueryResponse;
+import com.manleytech.entity.dify.query.DifyQueryEntity;
+import com.manleytech.entity.dify.resp.DifyQueryResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Post;
 
