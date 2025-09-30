@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 @Serdeable
 public class RetrievalSetting {
-    private int top_k;
-    private double score_threshold;
+    private Integer top_k;
+    private Double score_threshold;
+
 }

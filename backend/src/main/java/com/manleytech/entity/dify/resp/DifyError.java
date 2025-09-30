@@ -1,18 +1,10 @@
 package com.manleytech.entity.dify.resp;
 
-import io.micronaut.serde.annotation.Serdeable;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Data;
 
 @Data
-@Serdeable
+@Introspected
 public class DifyError {
-    /**
-     * 错误代码
-     */
-    private Integer error_code;
-
-    /**
-     * API 异常描述
-     */
-    private String error_msg;
+    private String message;
 }
