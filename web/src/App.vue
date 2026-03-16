@@ -1,176 +1,193 @@
 <script setup>
-import { ref } from 'vue'
-import DemoCard from './components/DemoCard.vue'
+import { onMounted, onUnmounted } from 'vue'
+import { useAppStore } from './store'
+import { useRoute } from 'vue-router'
+import MainLayout from './components/common/MainLayout.vue'
 
-const activeIndex = ref('1')
-const handleSelect = (key) => {
-  console.log(key)
+const appStore = useAppStore()
+const route = useRoute()
+
+// 监听窗口大小变化，设置设备类型
+const handleResize = () => {
+  const width = window.innerWidth
+  if (width < 768) {
+    appStore.setDevice('mobile')
+    appStore.closeSidebar(true)
+  } else {
+    appStore.setDevice('desktop')
+    appStore.sidebar.opened = true
+  }
 }
+
+onMounted(() => {
+  handleResize()
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', handleResize)
+})
 </script>
 
 <template>
-  <div class="common-layout">
-    <el-container>
-      <el-header>
-        <div class="header-content">
-          <div class="logo-container">
-            <img src="./assets/vue.svg" class="logo" alt="Vue logo" />
-            <h1 class="app-title">Vue 3 + Element Plus Demo</h1>
-          </div>
-          <el-menu
-            :default-active="activeIndex"
-            class="el-menu-demo"
-            mode="horizontal"
-            @select="handleSelect"
-          >
-            <el-menu-item index="1">Dashboard</el-menu-item>
-            <el-menu-item index="2">Products</el-menu-item>
-            <el-menu-item index="3">Settings</el-menu-item>
-            <el-sub-menu index="4">
-              <template #title>User Center</template>
-              <el-menu-item index="4-1">Profile</el-menu-item>
-              <el-menu-item index="4-2">Preferences</el-menu-item>
-              <el-menu-item index="4-3">Logout</el-menu-item>
-            </el-sub-menu>
-          </el-menu>
-        </div>
-      </el-header>
-      <el-container>
-        <el-aside width="250px">
-          <el-menu
-            default-active="1"
-            class="el-menu-vertical"
-            :collapse="false"
-          >
-            <el-menu-item index="1">
-              <el-icon><HomeFilled /></el-icon>
-              <span>Dashboard</span>
-            </el-menu-item>
-            <el-menu-item index="2">
-              <el-icon><Document /></el-icon>
-              <span>Documents</span>
-            </el-menu-item>
-            <el-menu-item index="3">
-              <el-icon><Setting /></el-icon>
-              <span>Settings</span>
-            </el-menu-item>
-            <el-menu-item index="4">
-              <el-icon><User /></el-icon>
-              <span>Users</span>
-            </el-menu-item>
-          </el-menu>
-        </el-aside>
-        <el-main>
-          <h2>Welcome to Your Vue 3 Application</h2>
-          <p class="description">This project is built with Vue 3, Vite, and Element Plus</p>
-          
-          <el-divider content-position="left">Component Demos</el-divider>
-          
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <DemoCard 
-                title="Form Controls" 
-                icon="Edit"
-                description="Input, select, checkbox, radio and form examples"
-              />
-            </el-col>
-            <el-col :span="8">
-              <DemoCard 
-                title="Data Display" 
-                icon="DataLine"
-                description="Table, pagination and data visualization components"
-              />
-            </el-col>
-            <el-col :span="8">
-              <DemoCard 
-                title="Notifications" 
-                icon="Bell"
-                description="Alerts, messages and notification examples"
-              />
-            </el-col>
-          </el-row>
-        </el-main>
-      </el-container>
-      <el-footer>
-        <p>&copy; {{ new Date().getFullYear() }} - Vue 3 + Element Plus Demo Application</p>
-      </el-footer>
-    </el-container>
-  </div>
+  <MainLayout />
 </template>
 
-<style scoped>
-.header-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+<style>
+/* 全局样式重置 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  color: #333;
+  background-color: #f5f7fa;
+}
+
+#app {
   height: 100%;
 }
 
-.logo-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-.logo {
-  height: 32px;
-  will-change: filter;
-  transition: filter 300ms;
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
 }
 
-.logo:hover {
-  filter: drop-shadow(0 0 1em #42b883aa);
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
 }
 
-.app-title {
-  font-size: 1.2rem;
-  margin: 0;
-  color: #409EFF;
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
-.el-header {
-  background-color: white;
-  color: #333;
-  border-bottom: 1px solid #eee;
-  padding: 0 20px;
-  height: 60px !important;
-}
-
-.el-aside {
-  background-color: #f5f7fa;
-  color: #333;
-  border-right: solid 1px #e6e6e6;
-}
-
+/* Element Plus 样式覆盖 */
 .el-main {
   padding: 20px;
-  background-color: #f5f7fa;
-  min-height: calc(100vh - 120px);
 }
 
-.el-footer {
-  background-color: #fff;
-  color: #888;
+.el-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.el-button {
+  border-radius: 4px;
+}
+
+.el-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.el-pagination {
+  margin-top: 20px;
+  text-align: right;
+}
+
+/* 工具类 */
+.text-center {
   text-align: center;
-  height: 60px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top: 1px solid #eee;
 }
 
-.description {
-  color: #666;
+.text-right {
+  text-align: right;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.mb-10 {
+  margin-bottom: 10px;
+}
+
+.mb-20 {
   margin-bottom: 20px;
 }
 
-.el-menu-vertical {
-  height: 100%;
-  border-right: none;
+.mt-10 {
+  margin-top: 10px;
 }
 
-h2 {
-  color: #333;
-  margin-top: 0;
+.mt-20 {
+  margin-top: 20px;
+}
+
+.ml-10 {
+  margin-left: 10px;
+}
+
+.mr-10 {
+  margin-right: 10px;
+}
+
+.p-10 {
+  padding: 10px;
+}
+
+.p-20 {
+  padding: 20px;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.full-height {
+  height: 100%;
+}
+
+/* 响应式断点 */
+@media (max-width: 768px) {
+  .el-main {
+    padding: 10px;
+  }
+  
+  .el-card {
+    margin-bottom: 10px;
+  }
+  
+  .hidden-xs-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .hidden-sm-and-up {
+    display: none !important;
+  }
 }
 </style>

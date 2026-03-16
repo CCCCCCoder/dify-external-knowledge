@@ -2,6 +2,8 @@ package com.manleytech.entity.bailian.query;
 
 import io.micronaut.serde.annotation.Serdeable;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.Data;
 
 import java.util.List;
@@ -19,6 +21,8 @@ public class BailianQueryRequest {
      * 向量检索 Top K，通过生成输入文本的向量并在知识库中检索与其向量表示最相似的 K 个文本切片。
      * K 的取值范围[0-100]。DenseSimilarityTopK和SparseSimilarityTopK二者之和小于等于 200。
      */
+    @Min(0)
+    @Max(100)
     private Integer denseSimilarityTopK = 100;
 
     /**
@@ -39,22 +43,22 @@ public class BailianQueryRequest {
     private Boolean enableRewrite = false;
 
     /**
-     * 相似度阈值。该阈值表示允许召回的文本切片的最低相似度分数，用于筛选 Rank 模型返回的文本切片，
-     * 即只有分数超过此数值的文本切片才会被召回。更多信息，请参见知识库。取值范围[0.01-1.00]。此参数的优先级大于知识库相似度阈值配置。
-     * 当未指定具体值时，默认采用该知识库配置的相似度阈值。
+     * 重排序配置。
      */
-    private float rerankMinScore = 0.01f;
+    private Rerank rerank;
 
     /**
-     * Rerank 后的 Top N 返回数据。取值范围[1-20]，默认值为 5。
+     * 多轮对话改写配置。
      */
-    private Integer rerankTopN = 5;
+    private Rewrite rewrite;
 
     /**
      * 关键词检索 TopK，即在知识库中查找与输入文本的关键词精确匹配的切片。
      * 取值范围[0-100]。DenseSimilarityTopK和SparseSimilarityTopK二者之和小于等于 200。
      * 默认值为：100。
      */
+    @Min(0)
+    @Max(100)
     private Integer sparseSimilarityTopK = 100;
 
     /**
@@ -76,4 +80,19 @@ public class BailianQueryRequest {
      * 默认值为：false。
      */
     private Boolean saveRetrieverHistory = false;
+
+    /**
+     * 支持通过 SearchFilter 设置个性化的检索条件（如标签），对语义检索结果进行过滤，排除无关信息。
+     */
+    private List<SearchFilter> searchFilters;
+
+    /**
+     * 支持在提问时传入图片 URL 地址。仅当查询图片问答类知识库且存在图片索引时生效。
+     */
+    private List<String> images;
+
+    /**
+     * 多轮对话改写支持传入自定义的对话历史。仅在 enableRewrite=true 时生效。
+     */
+    private List<QueryHistory> queryHistory;
 }

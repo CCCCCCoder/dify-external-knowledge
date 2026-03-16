@@ -1,6 +1,10 @@
 package com.manleytech.provider;
 
+import com.manleytech.constant.bailian.RerankModel;
 import com.manleytech.entity.bailian.query.BailianQueryRequest;
+import com.manleytech.entity.bailian.query.QueryHistory;
+import com.manleytech.entity.bailian.query.Rerank;
+import com.manleytech.entity.bailian.query.Rewrite;
 import com.manleytech.entity.bailian.resp.BailianQueryResponse;
 import com.manleytech.entity.dify.query.DifyQueryEntity;
 import com.manleytech.entity.dify.resp.DifyQueryResponse;
@@ -14,7 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -66,10 +72,24 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
         request.setSparseSimilarityTopK(apiProperties.getSparseSimilarityTopK());
         request.setDenseSimilarityTopK(apiProperties.getDenseSimilarityTopK());
         request.setEnableReranking(apiProperties.getEnableReranking());
-        request.setRerankMinScore(apiProperties.getRerankMinScore());
-        request.setRerankTopN(apiProperties.getRerankTopN());
         request.setEnableRewrite(apiProperties.getEnableRewrite());
         request.setSaveRetrieverHistory(apiProperties.getSaveRetrieverHistory());
+
+        // Set up Rerank configuration if reranking is enabled
+        if (apiProperties.getEnableReranking()) {
+            Rerank rerank = new Rerank();
+            rerank.setModelName(RerankModel.GTE_RERANK_HYBRID);
+            rerank.setRerankMinScore(apiProperties.getRerankMinScore());
+            rerank.setRerankTopN(apiProperties.getRerankTopN());
+            request.setRerank(rerank);
+        }
+
+        // Set up Rewrite configuration if rewrite is enabled
+        if (apiProperties.getEnableRewrite()) {
+            Rewrite rewrite = new Rewrite();
+            rewrite.setModelName("conv-rewrite-qwen-1.8b");
+            request.setRewrite(rewrite);
+        }
 
         // Override with values from the Dify request if provided
         if (difyQuery.getRetrieval_setting() != null) {
@@ -80,9 +100,12 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
                 request.setSparseSimilarityTopK(topK - (topK / 2));
             }
             
-            if (difyQuery.getRetrieval_setting().getScore_threshold() != null && 
+            if (difyQuery.getRetrieval_setting().getScore_threshold() != null &&
                 difyQuery.getRetrieval_setting().getScore_threshold() > 0) {
-                request.setRerankMinScore(difyQuery.getRetrieval_setting().getScore_threshold().floatValue());
+                // Update the rerank configuration with the score threshold from Dify
+                if (request.getRerank() != null) {
+                    request.getRerank().setRerankMinScore(difyQuery.getRetrieval_setting().getScore_threshold().floatValue());
+                }
             }
         }
 
