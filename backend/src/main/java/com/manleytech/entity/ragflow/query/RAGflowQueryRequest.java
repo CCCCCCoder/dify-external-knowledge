@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,13 +22,14 @@ public class RAGflowQueryRequest {
     /**
      * 查询内容
      */
-    private String query;
+    @JsonProperty("question")
+    private String question;
 
     /**
-     * 知识库ID
+     * 知识库ID列表
      */
-    @JsonProperty("kb_id")
-    private String kbId;
+    @JsonProperty("dataset_ids")
+    private List<String> datasetIds;
 
     /**
      * 检索数量限制

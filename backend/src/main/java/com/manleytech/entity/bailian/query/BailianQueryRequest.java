@@ -43,9 +43,9 @@ public class BailianQueryRequest {
     private Boolean enableRewrite = false;
 
     /**
-     * 重排序配置。
+     * 重排序配置（数组）。
      */
-    private Rerank rerank;
+    private List<Rerank> rerank;
 
     /**
      * 多轮对话改写配置。

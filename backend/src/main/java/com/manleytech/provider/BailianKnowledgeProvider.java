@@ -1,12 +1,15 @@
 package com.manleytech.provider;
 
 import com.manleytech.constant.bailian.RerankModel;
+import com.manleytech.constant.dify.ComparisonOperator;
 import com.manleytech.entity.bailian.query.BailianQueryRequest;
-import com.manleytech.entity.bailian.query.QueryHistory;
 import com.manleytech.entity.bailian.query.Rerank;
 import com.manleytech.entity.bailian.query.Rewrite;
+import com.manleytech.entity.bailian.query.SearchFilter;
 import com.manleytech.entity.bailian.resp.BailianQueryResponse;
+import com.manleytech.entity.dify.query.Condition;
 import com.manleytech.entity.dify.query.DifyQueryEntity;
+import com.manleytech.entity.dify.query.MetadataCondition;
 import com.manleytech.entity.dify.resp.DifyQueryResponse;
 import com.manleytech.entity.dify.resp.DifyRecord;
 import com.manleytech.provider.client.BailianApiClient;
@@ -20,7 +23,9 @@ import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -46,11 +51,9 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
     @Override
     public Mono<DifyQueryResponse> query(DifyQueryEntity queryEntity) {
         LOG.debug("Processing Bailian query for knowledge_id: {}", queryEntity.getKnowledge_id());
-        
+
         ProviderMapping mapping = providerProperties.getProviders().get(queryEntity.getKnowledge_id());
-        if (mapping == null) {
-            return Mono.error(new IllegalArgumentException("No provider mapping found for knowledge_id: " + queryEntity.getKnowledge_id()));
-        }
+        // Factory already validates mapping exists, no need to re-check
 
         BailianQueryRequest bailianRequest = createBailianRequest(queryEntity, mapping.getTargetId(), mapping.getWorkspaceId());
         String authToken = "Bearer " + apiProperties.getKey();
@@ -81,7 +84,7 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
             rerank.setModelName(RerankModel.GTE_RERANK_HYBRID);
             rerank.setRerankMinScore(apiProperties.getRerankMinScore());
             rerank.setRerankTopN(apiProperties.getRerankTopN());
-            request.setRerank(rerank);
+            request.setRerank(Collections.singletonList(rerank));
         }
 
         // Set up Rewrite configuration if rewrite is enabled
@@ -94,22 +97,78 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
         // Override with values from the Dify request if provided
         if (difyQuery.getRetrieval_setting() != null) {
             if (difyQuery.getRetrieval_setting().getTop_k() != null && difyQuery.getRetrieval_setting().getTop_k() > 0) {
-                // Split the topK evenly between dense and sparse retrieval
+                // Split the topK between dense and sparse retrieval (dense gets the extra if odd)
                 int topK = difyQuery.getRetrieval_setting().getTop_k();
-                request.setDenseSimilarityTopK(topK / 2);
-                request.setSparseSimilarityTopK(topK - (topK / 2));
+                request.setDenseSimilarityTopK((topK + 1) / 2);
+                request.setSparseSimilarityTopK(topK / 2);
             }
-            
+
             if (difyQuery.getRetrieval_setting().getScore_threshold() != null &&
                 difyQuery.getRetrieval_setting().getScore_threshold() > 0) {
                 // Update the rerank configuration with the score threshold from Dify
-                if (request.getRerank() != null) {
-                    request.getRerank().setRerankMinScore(difyQuery.getRetrieval_setting().getScore_threshold().floatValue());
+                if (request.getRerank() != null && !request.getRerank().isEmpty()) {
+                    request.getRerank().get(0).setRerankMinScore(difyQuery.getRetrieval_setting().getScore_threshold().floatValue());
                 }
             }
         }
 
+        // Handle metadata_condition for Bailian
+        if (difyQuery.getMetadata_condition() != null) {
+            List<SearchFilter> searchFilters = convertMetadataCondition(difyQuery.getMetadata_condition());
+            if (searchFilters != null && !searchFilters.isEmpty()) {
+                request.setSearchFilters(searchFilters);
+            }
+        }
+
         return request;
+    }
+
+    /**
+     * 将Dify的metadata_condition转换为Bailian的searchFilters格式
+     */
+    private List<SearchFilter> convertMetadataCondition(MetadataCondition condition) {
+        if (condition == null || condition.getConditions() == null || condition.getConditions().isEmpty()) {
+            return null;
+        }
+
+        List<Condition> conditions = condition.getConditions();
+
+        List<SearchFilter> filters = new ArrayList<>();
+
+        for (Condition cond : conditions) {
+            if (cond.getName() == null || cond.getName().isEmpty()) {
+                continue;
+            }
+
+            String fieldName = cond.getName().get(0);
+            String operator = cond.getComparison_operator();
+            String value = cond.getValue();
+
+            // 构建Bailian的filter条件
+            Map<String, Object> filterMap = new HashMap<>();
+
+            if (ComparisonOperator.CONTAINS.equals(operator)) {
+                filterMap.put(fieldName, value);
+            } else if (ComparisonOperator.EQUAL.equals(operator)) {
+                filterMap.put(fieldName, value);
+            } else if (ComparisonOperator.IS.equals(operator)) {
+                filterMap.put(fieldName, value);
+            } else if (ComparisonOperator.EMPTY.equals(operator)) {
+                filterMap.put(fieldName, "");
+            } else if (ComparisonOperator.NOT_EMPTY.equals(operator)) {
+                // 需要特殊处理
+                filterMap.put(fieldName, value);
+            }
+            // Note: Bailian的searchFilters格式可能需要根据实际API文档调整
+
+            if (!filterMap.isEmpty()) {
+                SearchFilter searchFilter = new SearchFilter();
+                searchFilter.setFilter(filterMap);
+                filters.add(searchFilter);
+            }
+        }
+
+        return filters.isEmpty() ? null : filters;
     }
 
     private DifyQueryResponse mapToDifyResponse(BailianQueryResponse bailianResponse) {
@@ -123,6 +182,10 @@ public class BailianKnowledgeProvider implements KnowledgeProvider {
                         record.setContent(doc.getText());
                         record.setScore(doc.getScore());
                         record.setTitle(doc.getDocName());
+                        // Map metadata from Bailian response
+                        if (doc.getMetadata() != null && !doc.getMetadata().isEmpty()) {
+                            record.setMetadata(new HashMap<>(doc.getMetadata()));
+                        }
                         return record;
                     })
                     .collect(Collectors.toList()));

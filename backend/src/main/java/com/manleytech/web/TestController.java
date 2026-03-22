@@ -6,7 +6,6 @@ import io.micronaut.http.annotation.Get;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 @Controller("/hello")
 public class TestController {

@@ -21,7 +21,7 @@ public interface RAGflowApiClient {
      * @param request 查询请求体
      * @return 查询响应
      */
-    @Post("/v1/knowledgebases/search")
+    @Post("/api/v1/retrieval")
     Mono<RAGflowQueryResponse> query(
             @Header("Authorization") String authorization,
             @Body RAGflowQueryRequest request
