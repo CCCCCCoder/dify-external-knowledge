@@ -1,20 +1,44 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useConfigStore } from '../store'
 import { RAG_PROVIDER_TYPES } from '../api'
 
 const configStore = useConfigStore()
 
-// 响应式数据
 const loading = ref(false)
 const activeTab = ref(RAG_PROVIDER_TYPES.BAILIAN)
 
-// 获取RAG配置
+const bailianConfig = ref({
+  endpoint: '',
+  apiKey: '',
+  configParams: {
+    sparseSimilarityTopK: 100,
+    denseSimilarityTopK: 100,
+    enableReranking: true,
+    rerankMinScore: 0.7,
+    rerankTopN: 5
+  }
+})
+
+const ragflowConfig = ref({
+  endpoint: '',
+  apiKey: '',
+  configParams: {
+    topK: 5,
+    scoreThreshold: 0.7
+  }
+})
+
 const fetchRagConfig = async (providerType) => {
   loading.value = true
   try {
-    await configStore.fetchRagConfig(providerType)
+    const config = await configStore.fetchRagConfig(providerType)
+    if (providerType === RAG_PROVIDER_TYPES.BAILIAN && config) {
+      bailianConfig.value = { ...config }
+    } else if (providerType === RAG_PROVIDER_TYPES.RAGFLOW && config) {
+      ragflowConfig.value = { ...config }
+    }
   } catch (error) {
     ElMessage.error(`获取${providerType === RAG_PROVIDER_TYPES.BAILIAN ? '阿里云百炼' : 'RAGFlow'}配置失败`)
   } finally {
@@ -22,10 +46,9 @@ const fetchRagConfig = async (providerType) => {
   }
 }
 
-// 保存配置
 const saveConfig = async (providerType) => {
   try {
-    const config = configStore.getRagConfigByType(providerType)
+    const config = providerType === RAG_PROVIDER_TYPES.BAILIAN ? bailianConfig.value : ragflowConfig.value
     await configStore.updateRagConfig(providerType, config)
     ElMessage.success('配置保存成功')
   } catch (error) {
@@ -33,7 +56,6 @@ const saveConfig = async (providerType) => {
   }
 }
 
-// 测试配置
 const testConfig = async (providerType) => {
   try {
     const result = await configStore.testRagConfig(providerType, {
@@ -51,12 +73,10 @@ const testConfig = async (providerType) => {
   }
 }
 
-// 标签页切换
 const handleTabChange = (tabName) => {
   fetchRagConfig(tabName)
 }
 
-// 组件挂载时获取数据
 onMounted(() => {
   fetchRagConfig(activeTab.value)
 })
@@ -64,7 +84,6 @@ onMounted(() => {
 
 <template>
   <div class="rag-config">
-    <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
         <h2>RAG框架配置</h2>
@@ -77,33 +96,31 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 配置选项卡 -->
     <el-card>
       <el-tabs v-model="activeTab" @tab-change="handleTabChange">
-        <!-- 阿里云百炼配置 -->
         <el-tab-pane label="阿里云百炼" :name="RAG_PROVIDER_TYPES.BAILIAN">
           <div v-loading="loading" class="config-content">
-            <el-form :model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN) || {}" label-width="150px">
+            <el-form :model="bailianConfig" label-width="150px">
               <el-form-item label="API端点">
-                <el-input v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.endpoint" placeholder="https://bailian.aliyuncs.com" />
+                <el-input v-model="bailianConfig.endpoint" placeholder="https://bailian.aliyuncs.com" />
               </el-form-item>
               <el-form-item label="API密钥">
-                <el-input v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.apiKey" type="password" placeholder="请输入API密钥" />
+                <el-input v-model="bailianConfig.apiKey" type="password" placeholder="请输入API密钥" />
               </el-form-item>
               <el-form-item label="稀疏检索TopK">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.configParams?.sparseSimilarityTopK" :min="0" :max="100" />
+                <el-input-number v-model="bailianConfig.configParams.sparseSimilarityTopK" :min="0" :max="100" />
               </el-form-item>
               <el-form-item label="密集检索TopK">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.configParams?.denseSimilarityTopK" :min="0" :max="100" />
+                <el-input-number v-model="bailianConfig.configParams.denseSimilarityTopK" :min="0" :max="100" />
               </el-form-item>
               <el-form-item label="启用重排序">
-                <el-switch v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.configParams?.enableReranking" />
+                <el-switch v-model="bailianConfig.configParams.enableReranking" />
               </el-form-item>
               <el-form-item label="重排序最小分数">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.configParams?.rerankMinScore" :min="0.01" :max="1" :step="0.01" />
+                <el-input-number v-model="bailianConfig.configParams.rerankMinScore" :min="0.01" :max="1" :step="0.01" />
               </el-form-item>
               <el-form-item label="重排序TopN">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.BAILIAN)?.configParams?.rerankTopN" :min="1" :max="20" />
+                <el-input-number v-model="bailianConfig.configParams.rerankTopN" :min="1" :max="20" />
               </el-form-item>
               <el-form-item>
                 <el-button type="primary" @click="saveConfig(RAG_PROVIDER_TYPES.BAILIAN)">保存配置</el-button>
@@ -113,21 +130,20 @@ onMounted(() => {
           </div>
         </el-tab-pane>
 
-        <!-- RAGFlow配置 -->
         <el-tab-pane label="RAGFlow" :name="RAG_PROVIDER_TYPES.RAGFLOW">
           <div v-loading="loading" class="config-content">
-            <el-form :model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.RAGFLOW) || {}" label-width="150px">
+            <el-form :model="ragflowConfig" label-width="150px">
               <el-form-item label="API端点">
-                <el-input v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.RAGFLOW)?.endpoint" placeholder="http://localhost:9380" />
+                <el-input v-model="ragflowConfig.endpoint" placeholder="http://localhost:9380" />
               </el-form-item>
               <el-form-item label="API密钥">
-                <el-input v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.RAGFLOW)?.apiKey" type="password" placeholder="请输入API密钥" />
+                <el-input v-model="ragflowConfig.apiKey" type="password" placeholder="请输入API密钥" />
               </el-form-item>
               <el-form-item label="TopK">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.RAGFLOW)?.configParams?.topK" :min="1" :max="100" />
+                <el-input-number v-model="ragflowConfig.configParams.topK" :min="1" :max="100" />
               </el-form-item>
               <el-form-item label="相似度阈值">
-                <el-input-number v-model="configStore.getRagConfigByType(RAG_PROVIDER_TYPES.RAGFLOW)?.configParams?.scoreThreshold" :min="0" :max="1" :step="0.01" />
+                <el-input-number v-model="ragflowConfig.configParams.scoreThreshold" :min="0" :max="1" :step="0.01" />
               </el-form-item>
               <el-form-item>
                 <el-button type="primary" @click="saveConfig(RAG_PROVIDER_TYPES.RAGFLOW)">保存配置</el-button>
@@ -175,7 +191,6 @@ onMounted(() => {
   padding: 20px 0;
 }
 
-/* 响应式设计 */
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;

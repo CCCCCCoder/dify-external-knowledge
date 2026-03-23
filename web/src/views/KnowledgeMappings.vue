@@ -3,6 +3,8 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useConfigStore } from '../store'
 import { MAPPING_STATUS, RAG_PROVIDER_TYPES } from '../api'
+import ImportDialog from '../components/ImportDialog.vue'
+import dayjs from 'dayjs'
 
 const configStore = useConfigStore()
 
@@ -10,6 +12,8 @@ const configStore = useConfigStore()
 const loading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
+const importDialogVisible = ref(false)
+const exporting = ref(false)
 const currentMapping = ref({
   id: null,
   knowledgeId: '',
@@ -119,6 +123,32 @@ const formatProviderType = (type) => {
   return type === RAG_PROVIDER_TYPES.BAILIAN ? '阿里云百炼' : 'RAGFlow'
 }
 
+// 导出配置
+const exportConfig = async () => {
+  exporting.value = true
+  try {
+    const response = await configStore.exportConfig()
+    const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `config_export_${dayjs().format('YYYYMMDD_HHmmss')}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  } finally {
+    exporting.value = false
+  }
+}
+
+// 导入成功回调
+const handleImportSuccess = () => {
+  fetchMappings()
+}
+
 // 组件挂载时获取数据
 onMounted(() => {
   fetchMappings()
@@ -134,6 +164,12 @@ onMounted(() => {
         <p>管理Dify知识库与RAG框架的映射关系</p>
       </div>
       <div class="header-right">
+        <el-button @click="exportConfig" :loading="exporting">
+          导出配置
+        </el-button>
+        <el-button @click="importDialogVisible = true">
+          导入配置
+        </el-button>
         <el-button type="primary" :icon="Plus" @click="showAddDialog">
           新增映射
         </el-button>
@@ -222,6 +258,12 @@ onMounted(() => {
         <el-button type="primary" @click="saveMapping">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 导入对话框 -->
+    <ImportDialog 
+      v-model:visible="importDialogVisible"
+      @success="handleImportSuccess"
+    />
   </div>
 </template>
 

@@ -3,6 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useAppStore } from '../store'
 import { dashboardApi, TIME_RANGES } from '../api'
 import { ElMessage } from 'element-plus'
+import RequestTrendChart from '../components/charts/RequestTrendChart.vue'
+import ProviderDistChart from '../components/charts/ProviderDistChart.vue'
+import PerformanceChart from '../components/charts/PerformanceChart.vue'
 
 const appStore = useAppStore()
 
@@ -27,7 +30,9 @@ const performanceMetrics = ref({
   cpu: 0,
   memory: 0,
   disk: 0,
-  network: 0
+  network: 0,
+  bailianTime: 0,
+  ragflowTime: 0
 })
 
 const errorStats = ref({
@@ -235,18 +240,11 @@ onMounted(() => {
             </div>
           </template>
           <div class="chart-container">
-            <div v-if="requestStats.dates.length === 0" class="empty-chart">
-              <el-empty description="暂无数据" />
-            </div>
-            <div v-else class="mock-chart">
-              <p class="chart-placeholder">请求趋势图表 (需要集成 ECharts)</p>
-              <div class="chart-data">
-                <div v-for="(date, index) in requestStats.dates.slice(0, 5)" :key="index" class="data-item">
-                  <span class="date">{{ date }}</span>
-                  <span class="count">{{ requestStats.counts[index] || 0 }}</span>
-                </div>
-              </div>
-            </div>
+            <RequestTrendChart 
+              :dates="requestStats.dates" 
+              :counts="requestStats.counts"
+              :loading="loading" 
+            />
           </div>
         </el-card>
       </el-col>
@@ -258,22 +256,10 @@ onMounted(() => {
             </div>
           </template>
           <div class="chart-container">
-            <div v-if="providerStats.length === 0" class="empty-chart">
-              <el-empty description="暂无数据" />
-            </div>
-            <div v-else class="provider-stats">
-              <div v-for="provider in providerStats" :key="provider.type" class="provider-item">
-                <div class="provider-info">
-                  <span class="provider-name">{{ provider.type }}</span>
-                  <span class="provider-count">{{ provider.count }}</span>
-                </div>
-                <el-progress 
-                  :percentage="(provider.count / Math.max(...providerStats.map(p => p.count))) * 100"
-                  :color="provider.type === 'bailian' ? '#409eff' : '#67c23a'"
-                  :show-text="false"
-                />
-              </div>
-            </div>
+            <ProviderDistChart 
+              :data="providerStats"
+              :loading="loading"
+            />
           </div>
         </el-card>
       </el-col>
@@ -288,33 +274,42 @@ onMounted(() => {
               <span>性能指标</span>
             </div>
           </template>
-          <div class="metrics-content">
-            <div class="metric-item">
-              <div class="metric-label">CPU使用率</div>
-              <el-progress 
-                :percentage="performanceMetrics.cpu" 
-                :color="performanceMetrics.cpu > 80 ? '#f56c6c' : performanceMetrics.cpu > 60 ? '#e6a23c' : '#67c23a'"
-              />
+          <div class="metrics-grid">
+            <div class="metrics-left">
+              <div class="metric-item">
+                <div class="metric-label">CPU使用率</div>
+                <el-progress 
+                  :percentage="performanceMetrics.cpu" 
+                  :color="performanceMetrics.cpu > 80 ? '#f56c6c' : performanceMetrics.cpu > 60 ? '#e6a23c' : '#67c23a'"
+                />
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">内存使用率</div>
+                <el-progress 
+                  :percentage="performanceMetrics.memory" 
+                  :color="performanceMetrics.memory > 80 ? '#f56c6c' : performanceMetrics.memory > 60 ? '#e6a23c' : '#67c23a'"
+                />
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">磁盘使用率</div>
+                <el-progress 
+                  :percentage="performanceMetrics.disk" 
+                  :color="performanceMetrics.disk > 80 ? '#f56c6c' : performanceMetrics.disk > 60 ? '#e6a23c' : '#67c23a'"
+                />
+              </div>
+              <div class="metric-item">
+                <div class="metric-label">网络使用率</div>
+                <el-progress 
+                  :percentage="performanceMetrics.network" 
+                  :color="performanceMetrics.network > 80 ? '#f56c6c' : performanceMetrics.network > 60 ? '#e6a23c' : '#67c23a'"
+                />
+              </div>
             </div>
-            <div class="metric-item">
-              <div class="metric-label">内存使用率</div>
-              <el-progress 
-                :percentage="performanceMetrics.memory" 
-                :color="performanceMetrics.memory > 80 ? '#f56c6c' : performanceMetrics.memory > 60 ? '#e6a23c' : '#67c23a'"
-              />
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">磁盘使用率</div>
-              <el-progress 
-                :percentage="performanceMetrics.disk" 
-                :color="performanceMetrics.disk > 80 ? '#f56c6c' : performanceMetrics.disk > 60 ? '#e6a23c' : '#67c23a'"
-              />
-            </div>
-            <div class="metric-item">
-              <div class="metric-label">网络使用率</div>
-              <el-progress 
-                :percentage="performanceMetrics.network" 
-                :color="performanceMetrics.network > 80 ? '#f56c6c' : performanceMetrics.network > 60 ? '#e6a23c' : '#67c23a'"
+            <div class="metrics-right">
+              <PerformanceChart 
+                :bailian-time="performanceMetrics.bailianTime"
+                :ragflow-time="performanceMetrics.ragflowTime"
+                :loading="loading"
               />
             </div>
           </div>
@@ -464,70 +459,28 @@ onMounted(() => {
   justify-content: center;
 }
 
-.mock-chart {
-  width: 100%;
-  text-align: center;
-}
-
-.chart-placeholder {
-  color: #909399;
-  margin-bottom: 20px;
-}
-
-.chart-data {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.data-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
-}
-
-.date {
-  color: #606266;
-}
-
-.count {
-  font-weight: 600;
-  color: #409eff;
-}
-
-.provider-stats {
-  width: 100%;
-  padding: 10px 0;
-}
-
-.provider-item {
-  margin-bottom: 15px;
-}
-
-.provider-info {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.provider-name {
-  font-weight: 500;
-  color: #303133;
-}
-
-.provider-count {
-  color: #409eff;
-  font-weight: 600;
-}
-
 .metrics-section {
   margin-bottom: 20px;
 }
 
 .metrics-card {
-  height: 300px;
+  min-height: 350px;
+}
+
+.metrics-grid {
+  display: flex;
+  gap: 20px;
+  height: calc(100% - 60px);
+}
+
+.metrics-left {
+  flex: 1;
+  padding: 10px 0;
+}
+
+.metrics-right {
+  flex: 1;
+  min-height: 250px;
 }
 
 .metrics-content {

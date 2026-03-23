@@ -1,25 +1,24 @@
 import { get, download } from '../utils/request'
 
-// 日志管理相关API
 export const logApi = {
-  // 获取日志列表
   getLogs(params = {}) {
-    return get('/logs', params)
+    return get('/logs/recent', params)
   },
 
-  // 获取日志详情
   getLogDetail(id) {
     return get(`/logs/${id}`)
   },
 
-  // 获取日志统计
   getLogStatistics(params = {}) {
     return get('/logs/stats', params)
   },
 
-  // 导出日志
   exportLogs(params = {}) {
     return download('/logs/export', params)
+  },
+
+  getRecentLogs(limit = 100) {
+    return get('/logs/recent', { limit })
   }
 }
 
