@@ -2,6 +2,8 @@ package com.manleytech.web;
 
 import com.manleytech.entity.db.ApiLogEntity;
 import com.manleytech.service.ApiLogService;
+import com.manleytech.entity.dify.resp.StandardResponse;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -14,7 +16,9 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Sinks;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -49,8 +53,27 @@ public class LogStreamController {
     }
 
     @Get("/recent")
-    public List<LogEvent> getRecentLogs(@QueryValue(defaultValue = "100") int limit) {
-        return apiLogService.getRecentLogs(limit).stream().map(this::toLogEvent).toList();
+    public HttpResponse<StandardResponse<Map<String, Object>>> getRecentLogs(
+            @QueryValue(defaultValue = "100") int limit,
+            @QueryValue(defaultValue = "1") int page,
+            @QueryValue(defaultValue = "20") int size) {
+        List<LogEvent> allLogs = apiLogService.getRecentLogs(limit).stream().map(this::toLogEvent).toList();
+        
+        int total = allLogs.size();
+        int fromIndex = (page - 1) * size;
+        int toIndex = Math.min(fromIndex + size, total);
+        
+        List<LogEvent> pagedLogs = fromIndex < total 
+            ? allLogs.subList(fromIndex, toIndex) 
+            : List.of();
+        
+        Map<String, Object> data = new HashMap<>();
+        data.put("records", pagedLogs);
+        data.put("total", total);
+        data.put("page", page);
+        data.put("size", size);
+        
+        return HttpResponse.ok(StandardResponse.success(data));
     }
 
     private void startLogPolling() {

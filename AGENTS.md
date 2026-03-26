@@ -108,6 +108,7 @@ cd web && pnpm run preview
 - Dify DTOs are the canonical internal contract
 - External provider DTOs live in `entity/{provider}/query` and `entity/{provider}/resp`
 - Always map external responses to Dify DTOs before returning
+- **API responses must use defined VO objects**, never return raw `Map` or untyped structures
 
 ---
 

@@ -278,22 +278,26 @@ public class ConfigController {
         }
     }
 
-    @Get("/history/{configType}/{configId}")
+    @Get("/history")
     @Operation(summary = "Get config history", description = "Retrieves the change history for a specific configuration")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "History retrieved successfully")
     })
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<StandardResponse<Map<String, Object>>> getConfigHistory(
-            @Parameter(description = "Config type (e.g., mapping, rag_config)") @PathVariable String configType,
-            @Parameter(description = "Config ID") @PathVariable Long configId) {
+            @Parameter(description = "Config type (e.g., mapping, rag_config)") @QueryValue String configType,
+            @Parameter(description = "Config ID") @QueryValue String configId,
+            @Parameter(description = "Page number") @QueryValue(defaultValue = "1") int page,
+            @Parameter(description = "Page size") @QueryValue(defaultValue = "20") int size) {
         LOG.debug("Fetching config history for {} with id: {}", configType, configId);
 
-        List<ConfigHistoryEntity> history = configService.getConfigHistory(configType, configId);
+        List<ConfigHistoryEntity> history = configService.getConfigHistory(configType, Long.parseLong(configId));
 
         Map<String, Object> data = new HashMap<>();
-        data.put("history", history);
+        data.put("records", history);
         data.put("total", history.size());
+        data.put("page", page);
+        data.put("size", size);
 
         return HttpResponse.ok(StandardResponse.success(data));
     }

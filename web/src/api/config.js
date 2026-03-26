@@ -37,24 +37,24 @@ export const configApi = {
     return post(`/config/rag/${providerType}/test`, data)
   },
 
-  // 获取配置变更历史
-  getConfigHistory(configType, configId, page = 1, size = 20) {
-    return get('/config/history', {
-      config_type: configType,
-      config_id: configId,
-      page,
-      size
-    })
-  },
+    // 获取配置变更历史
+    getConfigHistory(configType, configId, page = 1, size = 20) {
+      return get('/config/history', {
+        configType: configType,
+        configId: configId,
+        page,
+        size
+      })
+    },
 
-  // 配置回滚
-  rollbackConfig(configType, configId, historyId) {
-    return post('/config/rollback', {
-      config_type: configType,
-      config_id: configId,
-      history_id: historyId
-    })
-  },
+    // 配置回滚
+    rollbackConfig(configType, configId, historyId) {
+      return post('/config/rollback', {
+        configType: configType,
+        configId: configId,
+        historyId: historyId
+      })
+    },
 
   // 批量导入配置
   importConfig(file) {
