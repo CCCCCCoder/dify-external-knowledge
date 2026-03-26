@@ -17,13 +17,17 @@ cache:
     expire-after-write: 300s
 
 # Datasources Configuration
-# IMPORTANT: Replace with your actual database credentials
-# Do NOT commit real credentials to version control
+# Required environment variables:
+#   DB_HOST     - Database host (default: localhost)
+#   DB_PORT     - Database port (default: 3306)
+#   DB_NAME     - Database name (default: dify_external)
+#   DB_USERNAME - Database username
+#   DB_PASSWORD - Database password
 datasources:
   default:
-    url: jdbc:mysql://localhost:3306/dify_external?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&useSSL=false
-    username: CHANGEME_USERNAME
-    password: CHANGEME_PASSWORD
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:dify_external}?useUnicode=true&characterEncoding=utf8&serverTimezone=UTC&useSSL=false
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
     dialect: MYSQL
 
