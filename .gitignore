@@ -152,3 +152,22 @@ target
 .checkstyle-idea.xml.xml
 .checkstyle-idea.xml.xml.iml
 .checkstyle-idea.xml.xml.xml
+
+# ============================================
+# Sensitive Configuration (DO NOT COMMIT)
+# ============================================
+# Local database credentials and secrets
+application-local.yml
+application-secrets.yml
+*.local.yml
+*.secret.yml
+secret.properties
+credentials.properties
+
+# IDE sensitive files
+*.iml
+*.ipr
+*.iws
+.idea/workspace.xml
+.idea/datasources.xml
+.idea/dataSources.local.xml
